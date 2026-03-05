@@ -25,6 +25,8 @@ def init_db():
             camera_id TEXT,
             alert_type TEXT,
             threat_level TEXT,
+            threat_score INTEGER,
+            pattern TEXT,
             timestamp TEXT
         )
     """)
@@ -60,13 +62,21 @@ async def websocket_endpoint(websocket: WebSocket):
             conn = sqlite3.connect("threatsense.db")
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO security_alerts (camera_id, alert_type, threat_level, timestamp) VALUES (?, ?, ?, ?)",
-                (payload.get("camera_id"), payload.get("alert_type"), payload.get("threat_level"), datetime.now().isoformat())
+                "INSERT INTO security_alerts (camera_id, alert_type, threat_level, threat_score, pattern, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+                (payload.get("camera_id"), 
+                 payload.get("alert_type"), 
+                 payload.get("threat_level"), 
+                 payload.get("threat_score"),
+                 payload.get("pattern"),
+                 datetime.now().isoformat())
             )
             conn.commit()
             conn.close()
             
-            print(f"[ALERT RECEIVED] {payload['camera_id']} - {payload['alert_type']}")
+            alert_type = payload.get("alert_type", "UNKNOWN")
+            threat_score = payload.get("threat_score", "N/A")
+            pattern = payload.get("pattern", "")
+            print(f"[ALERT RECEIVED] {payload['camera_id']} - {alert_type} - Score: {threat_score} - Pattern: {pattern}")
             
     except WebSocketDisconnect:
         manager.disconnect(websocket)
@@ -80,5 +90,5 @@ async def get_logs():
     rows = cursor.fetchall()
     conn.close()
     
-    logs = [{"id": r[0], "camera_id": r[1], "alert_type": r[2], "threat_level": r[3], "timestamp": r[4]} for r in rows]
+    logs = [{"id": r[0], "camera_id": r[1], "alert_type": r[2], "threat_level": r[3], "threat_score": r[4], "pattern": r[5], "timestamp": r[6]} for r in rows]
     return {"status": "success", "data": logs}

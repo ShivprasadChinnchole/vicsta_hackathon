@@ -278,11 +278,20 @@
         let walmartLastAlertTime = 0;
 
         // --- EDGE-TO-CLOUD CONNECTION ---
+        // Get backend URL from environment variable or use default
+        const BACKEND_URL = window.location.origin === 'http://localhost:3000' ? 'http://localhost:8000' : window.location.origin.replace('http://', '').split('.')[0] === 'localhost' ? 'http://localhost:8000' : window.location.origin;
+        const WS_URL = BACKEND_URL.replace('http://', 'ws://').replace('https://', 'wss://');
+        
         let ws;
         function connectBackend() {
-            ws = new WebSocket('ws://localhost:8000/ws/stream');
-            ws.onopen = () => window.logEvent("Secure WebSocket tunnel established to Python Cloud.", "var(--green)");
-            ws.onclose = () => window.logEvent("Warning: Cloud connection lost. Running locally.", "var(--red)");
+            try {
+                ws = new WebSocket(WS_URL + '/ws/stream');
+                ws.onopen = () => window.logEvent("Secure WebSocket tunnel established to Cloud.", "var(--green)");
+                ws.onclose = () => window.logEvent("Warning: Cloud connection lost. Running locally.", "var(--red)");
+                ws.onerror = () => window.logEvent("WebSocket connection error. Check backend URL.", "var(--red)");
+            } catch (e) {
+                window.logEvent("Backend connection unavailable. Running in demo mode.", "var(--muted)");
+            }
         }
         connectBackend();
 
