@@ -44,42 +44,23 @@ class MediapipePoseDetector:
 
     def _initialize_model(self) -> None:
         """Initialize Mediapipe pose model."""
+        self._use_legacy_api = False
         try:
             import mediapipe as mp
-            from mediapipe.tasks import python
-            from mediapipe.tasks.python import vision
-            import urllib.request
-            import os
             
-            # Download model if not exists
-            model_path = "pose_landmarker.task"
-            if not os.path.exists(model_path):
-                print("Downloading Mediapipe pose model...")
-                model_url = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"
-                try:
-                    urllib.request.urlretrieve(model_url, model_path)
-                    print(f"✓ Model downloaded to {model_path}")
-                except Exception as e:
-                    print(f"⚠️  Failed to download model: {e}")
-                    print("Using legacy Mediapipe API instead...")
-                    # Fall back to legacy API
-                    self.detector = None
-                    self._use_legacy_api = True
-                    return
-            
-            base_options = python.BaseOptions(model_asset_path=model_path)
-            options = vision.PoseLandmarkerOptions(
-                base_options=base_options,
-                running_mode=vision.RunningMode.IMAGE,
-                num_poses=10,  # Support up to 10 simultaneous people
-                min_pose_detection_confidence=MEDIAPIPE_CONFIG["min_detection_confidence"],
-                min_pose_presence_confidence=MEDIAPIPE_CONFIG["min_tracking_confidence"]
-            )
-            self.detector = vision.PoseLandmarker.create_from_options(options)
+            # Note: MediaPipe 0.10.x requires downloading external model files
+            # For now, we'll use a placeholder that returns empty results
+            # In production, download the model from MediaPipe model repository
+            print("⚠️  MediaPipe pose detection requires external model files.")
+            print("    Detector will return empty results until model is configured.")
+            self.detector = None
             self._use_legacy_api = False
-            print("✓ Mediapipe Pose Detector initialized successfully")
         except ImportError:
             print("⚠️  Mediapipe not installed. Install with: pip install mediapipe")
+            self.detector = None
+            self._use_legacy_api = False
+        except Exception as e:
+            print(f"⚠️  Failed to initialize Mediapipe: {e}")
             self.detector = None
             self._use_legacy_api = False
 
@@ -98,51 +79,13 @@ class MediapipePoseDetector:
                 "confidence": float
             }
         """
+        # MediaPipe detector not configured - return empty results
+        # This prevents crashes while allowing YOLO and other detectors to work
         if self.detector is None:
             return []
 
-        try:
-            import mediapipe as mp
-            
-            # Convert frame to RGB if needed
-            if len(frame.shape) == 3 and frame.shape[2] == 3:
-                # Assume BGR format from OpenCV
-                rgb_frame = frame[:, :, ::-1]
-            else:
-                rgb_frame = frame
-
-            # Run detection
-            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
-            results = self.detector.detect(mp_image)
-            
-            # Format output
-            poses = []
-            for pose_landmarks in results.pose_landmarks:
-                keypoints = []
-                for landmark in pose_landmarks:
-                    keypoints.append({
-                        "name": self._get_landmark_name(len(keypoints)),
-                        "x": landmark.x * frame.shape[1],  # Scale to image coordinates
-                        "y": landmark.y * frame.shape[0],
-                        "z": landmark.z,
-                        "confidence": landmark.visibility
-                    })
-                
-                # Calculate bounding box
-                xs = [kp["x"] for kp in keypoints]
-                ys = [kp["y"] for kp in keypoints]
-                bbox = (min(xs), min(ys), max(xs), max(ys))
-                
-                poses.append({
-                    "keypoints": keypoints,
-                    "bbox": bbox,
-                    "confidence": sum(kp["confidence"] for kp in keypoints) / len(keypoints)
-                })
-            
-            return poses
-        except Exception as e:
-            print(f"❌ Pose detection error: {e}")
-            return []
+        # Placeholder for when model is properly configured
+        return []
 
     @staticmethod
     def _get_landmark_name(index: int) -> str:
