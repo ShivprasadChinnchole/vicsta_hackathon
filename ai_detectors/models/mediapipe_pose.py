@@ -44,7 +44,6 @@ class MediapipePoseDetector:
 
     def _initialize_model(self) -> None:
         """Initialize Mediapipe pose model."""
-        self._use_legacy_api = False
         try:
             import mediapipe as mp
             
@@ -54,15 +53,12 @@ class MediapipePoseDetector:
             print("⚠️  MediaPipe pose detection requires external model files.")
             print("    Detector will return empty results until model is configured.")
             self.detector = None
-            self._use_legacy_api = False
         except ImportError:
             print("⚠️  Mediapipe not installed. Install with: pip install mediapipe")
             self.detector = None
-            self._use_legacy_api = False
         except Exception as e:
             print(f"⚠️  Failed to initialize Mediapipe: {e}")
             self.detector = None
-            self._use_legacy_api = False
 
     def detect(self, frame: np.ndarray) -> List[Dict]:
         """

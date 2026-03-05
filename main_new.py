@@ -493,7 +493,7 @@ async def shutdown_event():
 if __name__ == "__main__":
     # Run with uvicorn
     uvicorn.run(
-        "main:app",
+        "main_new:app",  # Fixed: Changed from "main:app" to "main_new:app"
         host="0.0.0.0",
         port=8000,
         reload=True,
