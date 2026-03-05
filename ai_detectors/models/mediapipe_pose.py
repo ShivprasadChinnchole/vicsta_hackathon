@@ -48,20 +48,40 @@ class MediapipePoseDetector:
             import mediapipe as mp
             from mediapipe.tasks import python
             from mediapipe.tasks.python import vision
+            import urllib.request
+            import os
             
-            base_options = python.BaseOptions(model_asset_path=None)
+            # Download model if not exists
+            model_path = "pose_landmarker.task"
+            if not os.path.exists(model_path):
+                print("Downloading Mediapipe pose model...")
+                model_url = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"
+                try:
+                    urllib.request.urlretrieve(model_url, model_path)
+                    print(f"✓ Model downloaded to {model_path}")
+                except Exception as e:
+                    print(f"⚠️  Failed to download model: {e}")
+                    print("Using legacy Mediapipe API instead...")
+                    # Fall back to legacy API
+                    self.detector = None
+                    self._use_legacy_api = True
+                    return
+            
+            base_options = python.BaseOptions(model_asset_path=model_path)
             options = vision.PoseLandmarkerOptions(
                 base_options=base_options,
-                running_mode=vision.RunningMode.LIVE_STREAM,
+                running_mode=vision.RunningMode.IMAGE,
                 num_poses=10,  # Support up to 10 simultaneous people
                 min_pose_detection_confidence=MEDIAPIPE_CONFIG["min_detection_confidence"],
                 min_pose_presence_confidence=MEDIAPIPE_CONFIG["min_tracking_confidence"]
             )
             self.detector = vision.PoseLandmarker.create_from_options(options)
+            self._use_legacy_api = False
             print("✓ Mediapipe Pose Detector initialized successfully")
         except ImportError:
             print("⚠️  Mediapipe not installed. Install with: pip install mediapipe")
             self.detector = None
+            self._use_legacy_api = False
 
     def detect(self, frame: np.ndarray) -> List[Dict]:
         """
@@ -92,7 +112,8 @@ class MediapipePoseDetector:
                 rgb_frame = frame
 
             # Run detection
-            results = self.detector.detect_for_video(rgb_frame, timestamp_ms=0)
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+            results = self.detector.detect(mp_image)
             
             # Format output
             poses = []

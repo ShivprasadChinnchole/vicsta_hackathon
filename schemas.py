@@ -5,7 +5,7 @@ Data validation and serialization schemas for API endpoints.
 """
 
 from datetime import datetime
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
 
@@ -187,7 +187,7 @@ class ConfigUpdateSchema(BaseModel):
     """Configuration update request."""
     detector_name: str
     parameter: str
-    value: any
+    value: Any
 
 
 # ============================================================================

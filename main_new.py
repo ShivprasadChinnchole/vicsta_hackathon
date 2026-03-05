@@ -40,6 +40,10 @@ from ai_detectors.utils.visualization import SkeletonVisualizer
 from database import engine, SessionLocal, Base, Camera, ThreatAlert, SystemLog
 from schemas import ThreatAlertSchema, CameraSchema, SystemStatusSchema
 
+# Create necessary directories first
+Path("logs").mkdir(exist_ok=True)
+Path("static").mkdir(exist_ok=True)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -487,10 +491,6 @@ async def shutdown_event():
 # ============================================================================
 
 if __name__ == "__main__":
-    # Create logs directory if it doesn't exist
-    Path("logs").mkdir(exist_ok=True)
-    Path("static").mkdir(exist_ok=True)
-    
     # Run with uvicorn
     uvicorn.run(
         "main:app",
